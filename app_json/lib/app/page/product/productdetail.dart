@@ -1,7 +1,8 @@
 import 'package:app_json/app/model/product.dart';
+import 'package:app_json/app/model/product_viewmodel.dart';
+import 'package:app_json/app/page/product/checkout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../model/product_viewmodel.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Product product;
@@ -33,19 +34,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   // Hàm xử lý "Mua ngay"
   void _buyNow(BuildContext context) {
-    // Thêm sản phẩm vào giỏ hàng với số lượng đã chọn
-    Provider.of<ProductsVM>(context, listen: false)
-        .addToCart(widget.product, quantity: quantity);
-    // Hiển thị thông báo
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Đã thêm vào giỏ hàng!")),
+    // Chuyển đến trang thanh toán với sản phẩm và số lượng đã chọn
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CheckoutPage(
+          items: [CartItem(product: widget.product, quantity: quantity)],
+          totalPrice: widget.product.price.toDouble() * 1000 * quantity,
+        ),
+      ),
     );
-    // Điều hướng đến trang giỏ hàng (giả định bạn đã có trang giỏ hàng)
-    // Nếu chưa có, bạn có thể thay thế bằng một trang khác hoặc bỏ qua bước này
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (context) => CartPage()),
-    // );
   }
 
   // Định dạng giá tiền theo VND
@@ -93,7 +91,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           ),
         ],
       ),
-      // Sử dụng bottomNavigationBar để cố định phần bottom
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -116,7 +113,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               children: [
                 // Số lượng
                 Container(
-                  width: 120, // Đặt chiều rộng cố định để cân đối
+                  width: 120,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
@@ -193,7 +190,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     child: const Icon(
                       Icons.add_shopping_cart,
                       size: 28,
-                      color: Colors.green, // Đổi màu icon thành xanh lá
+                      color: Colors.green,
                     ),
                   ),
                 ),
@@ -290,9 +287,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     widget.product.des,
                     style: const TextStyle(fontSize: 16, color: Colors.black87),
                   ),
-                  const SizedBox(
-                      height:
-                          120), // Khoảng trống để tránh che khuất bottomNavigationBar
+                  const SizedBox(height: 120),
                 ],
               ),
             ),

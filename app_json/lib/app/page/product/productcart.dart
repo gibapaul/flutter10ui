@@ -1,5 +1,6 @@
 import 'package:app_json/app/config/const.dart';
 import 'package:app_json/app/model/product_viewmodel.dart';
+import 'package:app_json/app/page/product/checkout.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -15,7 +16,7 @@ class _ProductCartState extends State<ProductCart> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Không hiển thị AppBar
+      // Bỏ phần appBar
       body: Column(
         children: [
           Expanded(
@@ -49,7 +50,6 @@ class _ProductCartState extends State<ProductCart> {
               },
             ),
           ),
-          // Nút "Xóa tất cả"
           Consumer<ProductsVM>(
             builder: (context, provider, child) {
               return provider.lst.isNotEmpty
@@ -224,10 +224,22 @@ class _ProductCartState extends State<ProductCart> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Thanh toán thành công!')),
+                  if (provider.lst.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Giỏ hàng trống!')),
+                    );
+                    return;
+                  }
+                  // Chuyển đến trang thanh toán
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CheckoutPage(
+                        items: provider.lst,
+                        totalPrice: totalPrice,
+                      ),
+                    ),
                   );
-                  provider.clearCart();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,

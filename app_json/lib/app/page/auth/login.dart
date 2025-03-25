@@ -2,7 +2,7 @@ import 'package:app_json/app/page/register.dart';
 import 'package:app_json/app/utils/extensions.dart'; // Import extension
 import 'package:flutter/material.dart';
 import 'package:app_json/app/model/register.dart';
-import 'package:app_json/mainpage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -23,11 +23,44 @@ class _LoginScreenState extends State<LoginScreen> {
     _loadSignupInfo();
   }
 
+  // Tải thông tin đăng nhập đã lưu (nếu có)
   Future<void> _loadSignupInfo() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool rememberMe = prefs.getBool('remember_me') ?? false;
+    if (rememberMe) {
+      String? savedUsername = prefs.getString(
+          'saved_username'); // Đổi từ saved_email thành saved_username
+      String? savedPassword = prefs.getString('saved_password');
+      if (savedUsername != null && savedPassword != null) {
+        accountController.text = savedUsername;
+        passwordController.text = savedPassword;
+        setState(() {
+          _rememberMe = true;
+        });
+      }
+    }
+
+    // Kiểm tra thông tin đăng ký
     Signup? signup = await getSignupInfo();
-    if (signup != null) {
+    if (signup != null && rememberMe) {
       accountController.text = signup.accountID ?? '';
       passwordController.text = signup.password ?? '';
+    }
+  }
+
+  // Lưu thông tin đăng nhập nếu người dùng chọn "Lưu đăng nhập"
+  Future<void> _saveLoginInfo() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setBool('remember_me', true);
+      await prefs.setString('saved_username',
+          accountController.text); // Đổi từ saved_email thành saved_username
+      await prefs.setString('saved_password', passwordController.text);
+    } else {
+      await prefs.remove('remember_me');
+      await prefs
+          .remove('saved_username'); // Đổi từ saved_email thành saved_username
+      await prefs.remove('saved_password');
     }
   }
 
@@ -36,19 +69,32 @@ class _LoginScreenState extends State<LoginScreen> {
     if (signup != null) {
       if (signup.accountID == accountController.text &&
           signup.password == passwordController.text) {
+        // Lưu thông tin đăng nhập nếu người dùng chọn "Lưu đăng nhập"
+        await _saveLoginInfo();
+
+        // Điều hướng đến Mainpage
         if (mounted) {
-          Navigator.push(
+          Navigator.pushNamedAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const Mainpage()),
+            '/mainpage',
+            (route) => false,
+            arguments: 0, // Chuyển về tab Home (index 0)
           );
         }
       } else {
-        print(
-            "Login failed"); // TODO: Thay print bằng logging framework trong production
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                "Tên người dùng hoặc mật khẩu không đúng!"), // Đổi thông báo lỗi
+          ),
+        );
       }
     } else {
-      print(
-          "No signup info found"); // TODO: Thay print bằng logging framework trong production
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Tài khoản không tồn tại! Vui lòng đăng ký."),
+        ),
+      );
     }
   }
 
@@ -70,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 150,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color.fromRGBO(76, 175, 80, 0.1),
+                color: const Color.fromRGBO(76, 175, 80, 0.1),
               ),
             ),
           ),
@@ -82,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 100,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color.fromRGBO(76, 175, 80, 0.2),
+                color: const Color.fromRGBO(76, 175, 80, 0.2),
               ),
             ),
           ),
@@ -94,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color.fromRGBO(76, 175, 80, 0.15),
+                color: const Color.fromRGBO(76, 175, 80, 0.15),
               ),
             ),
           ),
@@ -106,7 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 180,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color.fromRGBO(76, 175, 80, 0.1),
+                color: const Color.fromRGBO(76, 175, 80, 0.1),
               ),
             ),
           ),
@@ -136,18 +182,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  // Trường Email
+                  // Trường Tên người dùng
                   TextFormField(
                     controller: accountController,
                     decoration: InputDecoration(
                       labelText:
-                          "Email", // Sử dụng labelText để có floating label
+                          "Tên người dùng", // Đổi từ "Email" thành "Tên người dùng"
                       labelStyle: TextStyle(color: Colors.grey.shade600),
                       floatingLabelStyle: const TextStyle(
                         color: Colors.green,
                         fontWeight: FontWeight.w500,
                       ),
-                      prefixIcon: const Icon(Icons.email),
+                      prefixIcon: const Icon(Icons
+                          .person), // Đổi từ Icons.email thành Icons.person
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(
@@ -168,7 +215,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               ? Colors.green
                               : Colors.black54),
                     ).copyWithFillColor(
-                        focusedFillColor: Color.fromRGBO(76, 175, 80, 0.05)),
+                        focusedFillColor:
+                            const Color.fromRGBO(76, 175, 80, 0.05)),
                   ),
                   const SizedBox(height: 16),
                   // Trường Password
@@ -219,7 +267,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               ? Colors.green
                               : Colors.black54),
                     ).copyWithFillColor(
-                        focusedFillColor: Color.fromRGBO(76, 175, 80, 0.05)),
+                        focusedFillColor:
+                            const Color.fromRGBO(76, 175, 80, 0.05)),
                   ),
                   const SizedBox(height: 16),
                   // Checkbox "Remember me" - Căn giữa
@@ -261,7 +310,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         elevation: 5,
                         backgroundColor: Colors.transparent,
-                        shadowColor: Color.fromRGBO(76, 175, 80, 0.3),
+                        shadowColor: const Color.fromRGBO(76, 175, 80, 0.3),
                       ).copyWith(
                         backgroundColor: WidgetStateProperty.resolveWith(
                           (states) => Colors.transparent,
@@ -270,7 +319,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           (states) => Colors.white,
                         ),
                         overlayColor: WidgetStateProperty.resolveWith(
-                          (states) => Color.fromRGBO(255, 255, 255, 0.1),
+                          (states) => const Color.fromRGBO(255, 255, 255, 0.1),
                         ),
                       ),
                       child: Container(
@@ -288,7 +337,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         child: const Center(
                           child: Text(
-                            "Đăng nhập", // Sửa "Sign up" thành "Sign in"
+                            "Đăng nhập",
                             style: TextStyle(fontSize: 18, color: Colors.white),
                           ),
                         ),

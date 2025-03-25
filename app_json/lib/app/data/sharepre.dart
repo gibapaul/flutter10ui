@@ -9,7 +9,7 @@ import '../model/user.dart';
 Future<bool> saveUser(User objUser) async {
   try {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String strUser = jsonEncode(objUser.toJson()); // Đảm bảo toJson() được gọi
+    String strUser = jsonEncode(objUser.toJson());
     await prefs.setString('user', strUser);
     print("Lưu thành công: $strUser");
     return true;
@@ -22,7 +22,7 @@ Future<bool> saveUser(User objUser) async {
 Future<bool> logOut(BuildContext context) async {
   try {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('user'); // Sử dụng remove thay vì setString('')
+    await prefs.remove('user'); // Chỉ xóa thông tin người dùng
     print("Logout thành công");
 
     // Đảm bảo điều hướng được thực hiện trên main thread
@@ -40,17 +40,38 @@ Future<bool> logOut(BuildContext context) async {
   }
 }
 
+Future<bool> deleteAccount(BuildContext context) async {
+  try {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // Xóa toàn bộ dữ liệu trong SharedPreferences
+    print("Xóa tài khoản thành công");
+
+    // Đảm bảo điều hướng được thực hiện trên main thread
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
+    });
+    return true;
+  } catch (e) {
+    print("Lỗi khi xóa tài khoản: $e");
+    return false;
+  }
+}
+
 Future<User> getUser() async {
   try {
     SharedPreferences pref = await SharedPreferences.getInstance();
     String? strUser = pref.getString('user');
     if (strUser == null || strUser.isEmpty) {
       print("Không tìm thấy user trong SharedPreferences, trả về user rỗng");
-      return User.userEmpty(); // Trả về một user rỗng nếu không có dữ liệu
+      return User.userEmpty();
     }
     return User.fromJson(jsonDecode(strUser));
   } catch (e) {
     print("Lỗi khi lấy user: $e");
-    return User.userEmpty(); // Trả về user rỗng nếu có lỗi
+    return User.userEmpty();
   }
 }

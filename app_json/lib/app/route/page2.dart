@@ -30,23 +30,56 @@ class _Page2State extends State<Page2> {
     final String response = await DefaultAssetBundle.of(context)
         .loadString('assets/json/data.json');
     final List<dynamic> data = jsonDecode(response);
-    setState(() {
-      products = data.map((json) => Product.fromJson(json)).toList();
-    });
+    if (mounted) {
+      setState(() {
+        products = data.map((json) => Product.fromJson(json)).toList();
+      });
+    }
   }
 
-  // Hàm xác định mệnh dựa trên năm sinh
+  // Hàm xác định mệnh dựa trên năm sinh (dùng bảng ngũ hành nạp âm)
   String determineElement(int year) {
-    // Bảng tra cứu mệnh theo năm sinh (dựa trên ngũ hành)
-    final int lastDigit = year % 10;
+    // Tính chỉ số trong chu kỳ 60 năm (bắt đầu từ 1924)
+    int cycleIndex = (year - 1924) % 60;
+    if (cycleIndex < 0) {
+      cycleIndex += 60; // Đảm bảo chỉ số không âm (cho các năm trước 1924)
+    }
 
-    if (lastDigit == 0 || lastDigit == 1) return "Kim";
-    if (lastDigit == 2 || lastDigit == 3) return "Thủy";
-    if (lastDigit == 4 || lastDigit == 5) return "Hỏa";
-    if (lastDigit == 6 || lastDigit == 7) return "Thổ";
-    if (lastDigit == 8 || lastDigit == 9) return "Mộc";
+    // Bảng ngũ hành nạp âm (từ 1924 đến 1983, lặp lại sau mỗi 60 năm)
+    const List<String> elements = [
+      "Kim", "Kim", // 1924, 1925: Hải Trung Kim
+      "Hỏa", "Hỏa", // 1926, 1927: Lư Trung Hỏa
+      "Mộc", "Mộc", // 1928, 1929: Đại Lâm Mộc
+      "Thổ", "Thổ", // 1930, 1931: Lộ Bàng Thổ
+      "Kim", "Kim", // 1932, 1933: Kiếm Phong Kim
+      "Hỏa", "Hỏa", // 1934, 1935: Sơn Đầu Hỏa
+      "Thủy", "Thủy", // 1936, 1937: Giản Hạ Thủy
+      "Thổ", "Thổ", // 1938, 1939: Thành Đầu Thổ
+      "Kim", "Kim", // 1940, 1941: Bạch Lạp Kim
+      "Mộc", "Mộc", // 1942, 1943: Dương Liễu Mộc
+      "Thủy", "Thủy", // 1944, 1945: Tuyền Trung Thủy
+      "Thổ", "Thổ", // 1946, 1947: Ốc Thượng Thổ
+      "Hỏa", "Hỏa", // 1948, 1949: Tích Lịch Hỏa
+      "Mộc", "Mộc", // 1950, 1951: Tùng Bách Mộc
+      "Thủy", "Thủy", // 1952, 1953: Trường Lưu Thủy
+      "Kim", "Kim", // 1954, 1955: Sa Trung Kim
+      "Hỏa", "Hỏa", // 1956, 1957: Sơn Hạ Hỏa
+      "Mộc", "Mộc", // 1958, 1959: Bình Địa Mộc
+      "Thổ", "Thổ", // 1960, 1961: Bích Thượng Thổ
+      "Kim", "Kim", // 1962, 1963: Kim Bạch Kim
+      "Hỏa", "Hỏa", // 1964, 1965: Phú Đăng Hỏa
+      "Thủy", "Thủy", // 1966, 1967: Thiên Hà Thủy
+      "Thổ", "Thổ", // 1968, 1969: Đại Trạch Thổ
+      "Kim", "Kim", // 1970, 1971: Thoa Xuyến Kim
+      "Mộc", "Mộc", // 1972, 1973: Tang Đố Mộc
+      "Thủy", "Thủy", // 1974, 1975: Đại Khê Thủy
+      "Thổ", "Thổ", // 1976, 1977: Sa Trung Thổ
+      "Hỏa", "Hỏa", // 1978, 1979: Thiên Thượng Hỏa
+      "Mộc", "Mộc", // 1980, 1981: Thạch Lựu Mộc
+      "Thủy", "Thủy", // 1982, 1983: Đại Hải Thủy
+    ];
 
-    return "Thổ"; // Mặc định
+    return elements[cycleIndex];
   }
 
   // Hàm xác định các mệnh hợp với mệnh của người dùng (dựa trên tương sinh)
@@ -170,13 +203,13 @@ class _Page2State extends State<Page2> {
       final element = determineElement(year);
       final tree = recommendTree(element);
 
-      setState(() {
-        userElement = element;
-        recommendedTree = tree;
-        isLoading = false;
-      });
-
       if (mounted) {
+        setState(() {
+          userElement = element;
+          recommendedTree = tree;
+          isLoading = false;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text("Cây phong thủy của bạn đã được tìm thấy!")),

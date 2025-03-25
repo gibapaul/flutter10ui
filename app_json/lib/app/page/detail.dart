@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../model/user.dart';
 import '../model/register.dart';
-import '../data/sharepre.dart'; // Import để sử dụng logOut
+import '../data/sharepre.dart';
+import '../model/product_viewmodel.dart';
 
 class Detail extends StatefulWidget {
   const Detail({super.key});
@@ -18,18 +21,18 @@ class _DetailState extends State<Detail> {
   User user = User.userEmpty();
   bool isLoading = true;
 
-  // Các controller để chỉnh sửa thông tin
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _birthDayController = TextEditingController();
   final TextEditingController _schoolYearController = TextEditingController();
   final TextEditingController _schoolKeyController = TextEditingController();
-  File? _selectedImage; // Lưu trữ file ảnh đã chọn
-  String? _imagePath; // Đường dẫn ảnh (lưu trữ lâu dài)
+  final TextEditingController _passwordController = TextEditingController();
+  File? _selectedImage;
+  String? _imagePath;
   final ImagePicker _picker = ImagePicker();
 
   Future<void> getDataUser() async {
-    if (!mounted) return; // Kiểm tra trước khi gọi setState
+    if (!mounted) return;
     setState(() {
       isLoading = true;
     });
@@ -50,13 +53,11 @@ class _DetailState extends State<Detail> {
           imageURL: signup.imageUrl,
           dateCreated: DateTime.now().toString(),
         );
-        // Khởi tạo giá trị cho các controller
         _fullNameController.text = user.fullName ?? '';
         _phoneNumberController.text = user.phoneNumber ?? '';
         _birthDayController.text = user.birthDay ?? '';
         _schoolYearController.text = user.schoolYear ?? '';
         _schoolKeyController.text = user.schoolKey ?? '';
-        // Khởi tạo ảnh đã lưu (nếu có)
         if (user.imageURL != null && user.imageURL!.isNotEmpty) {
           _imagePath = user.imageURL;
           if (await File(user.imageURL!).exists()) {
@@ -102,10 +103,10 @@ class _DetailState extends State<Detail> {
     _birthDayController.dispose();
     _schoolYearController.dispose();
     _schoolKeyController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  // Hàm chọn ngày sinh
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -135,30 +136,20 @@ class _DetailState extends State<Detail> {
     }
   }
 
-  // Hàm chọn ảnh từ thư viện hoặc camera
   Future<void> _pickImage(ImageSource source) async {
-    // Kiểm tra quyền tương ứng
     Permission permission;
-    String permissionName; // Tên quyền để hiển thị trong thông báo
+    String permissionName;
     if (source == ImageSource.camera) {
       permission = Permission.camera;
       permissionName = "camera";
     } else {
-      permission = Permission.photos; // Hoặc Permission.storage cho Android cũ
+      permission = Permission.photos;
       permissionName = "thư viện ảnh";
     }
 
-    // Kiểm tra trạng thái quyền
     var status = await permission.status;
-    print("Trạng thái quyền $permissionName trước khi yêu cầu: $status");
-
-    // Nếu quyền chưa được cấp hoặc chỉ được cấp một phần (limited)
     if (!(status.isGranted || status.isLimited)) {
-      // Yêu cầu quyền
       status = await permission.request();
-      print("Trạng thái quyền $permissionName sau khi yêu cầu: $status");
-
-      // Nếu quyền vẫn không được cấp, hiển thị thông báo
       if (!(status.isGranted || status.isLimited) && mounted) {
         final String message = status.isPermanentlyDenied
             ? 'Quyền truy cập $permissionName bị từ chối vĩnh viễn. Vui lòng cấp quyền trong cài đặt.'
@@ -172,15 +163,10 @@ class _DetailState extends State<Detail> {
               label: 'Cấp quyền',
               textColor: Colors.white,
               onPressed: () async {
-                // Mở cài đặt ứng dụng
                 bool opened = await openAppSettings();
                 if (opened && mounted) {
-                  // Kiểm tra lại trạng thái quyền sau khi quay lại từ cài đặt
                   status = await permission.status;
-                  print(
-                      "Trạng thái quyền $permissionName sau khi quay lại từ cài đặt: $status");
                   if (status.isGranted || status.isLimited) {
-                    // Nếu quyền đã được cấp hoặc cấp một phần, thử chọn ảnh lại
                     await _pickImage(source);
                   }
                 }
@@ -188,11 +174,10 @@ class _DetailState extends State<Detail> {
             ),
           ),
         );
-        return; // Thoát hàm nếu quyền không được cấp
+        return;
       }
     }
 
-    // Nếu quyền đã được cấp hoặc cấp một phần, tiến hành chọn ảnh
     if (status.isGranted || status.isLimited) {
       try {
         final XFile? pickedFile = await _picker.pickImage(
@@ -212,9 +197,6 @@ class _DetailState extends State<Detail> {
             _selectedImage = newImage;
             _imagePath = path;
           });
-        } else if (pickedFile == null && mounted) {
-          // Nếu người dùng không chọn ảnh (hủy), không hiển thị lỗi
-          print("Người dùng đã hủy chọn ảnh.");
         }
       } catch (e) {
         if (mounted) {
@@ -226,7 +208,6 @@ class _DetailState extends State<Detail> {
     }
   }
 
-  // Hiển thị dialog chọn nguồn ảnh
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
@@ -258,7 +239,6 @@ class _DetailState extends State<Detail> {
     );
   }
 
-  // Hàm hiển thị dialog chỉnh sửa thông tin
   void _showEditDialog() {
     showDialog(
       context: context,
@@ -296,7 +276,6 @@ class _DetailState extends State<Detail> {
                   label: "Mã trường",
                   icon: Icons.vpn_key,
                 ),
-                // Thay thế TextField nhập URL bằng nút chọn ảnh
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Column(
@@ -313,7 +292,6 @@ class _DetailState extends State<Detail> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          // Hiển thị ảnh đã chọn (nếu có)
                           _selectedImage != null
                               ? Container(
                                   width: 60,
@@ -374,7 +352,6 @@ class _DetailState extends State<Detail> {
             ),
             ElevatedButton(
               onPressed: () async {
-                // Cập nhật thông tin người dùng
                 if (mounted) {
                   setState(() {
                     user = User(
@@ -387,14 +364,12 @@ class _DetailState extends State<Detail> {
                       birthDay: _birthDayController.text,
                       schoolYear: _schoolYearController.text,
                       schoolKey: _schoolKeyController.text,
-                      imageURL: _imagePath ??
-                          user.imageURL, // Sử dụng đường dẫn ảnh mới
+                      imageURL: _imagePath ?? user.imageURL,
                       dateCreated: user.dateCreated,
                     );
                   });
                 }
 
-                // Lưu thông tin đã chỉnh sửa vào SharedPreferences
                 final signup = Signup(
                   accountID: user.accountId!,
                   numberID: user.idNumber!,
@@ -435,152 +410,394 @@ class _DetailState extends State<Detail> {
     );
   }
 
+  void _showDeleteAccountDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(
+            "Xóa tài khoản",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Vui lòng nhập mật khẩu để xác nhận xóa tài khoản. Hành động này không thể hoàn tác!",
+                style: TextStyle(fontSize: 16, color: Colors.black54),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: "Mật khẩu",
+                  prefixIcon: const Icon(Icons.lock, color: Colors.red),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.red, width: 2),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _passwordController.clear();
+              },
+              child: const Text(
+                "Hủy",
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Signup? signup = await getSignupInfo();
+                if (signup != null &&
+                    signup.password == _passwordController.text) {
+                  // Xóa dữ liệu trong ProductsVM
+                  Provider.of<ProductsVM>(context, listen: false).resetState();
+                  // Xóa tài khoản
+                  await deleteAccount(context);
+                  Navigator.pop(context);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Tài khoản đã được xóa thành công!"),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } else {
+                  Navigator.pop(context);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Mật khẩu không đúng!"),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+                _passwordController.clear();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text("Xóa"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: Colors.green,
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white,
+                  Color.fromRGBO(76, 175, 80, 0.05),
+                ],
               ),
-            )
-          : SingleChildScrollView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 40.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Ảnh đại diện và nút chỉnh sửa
-                  Stack(
-                    alignment: Alignment.bottomRight,
+            ),
+          ),
+          Positioned(
+            top: -50,
+            left: -50,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color.fromRGBO(76, 175, 80, 0.1),
+              ),
+            ),
+          ),
+          Positioned(
+            top: -30,
+            right: -30,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color.fromRGBO(76, 175, 80, 0.2),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -40,
+            left: -40,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color.fromRGBO(76, 175, 80, 0.15),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -60,
+            right: -60,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color.fromRGBO(76, 175, 80, 0.1),
+              ),
+            ),
+          ),
+          isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.green,
+                  ),
+                )
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 40.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      CircleAvatar(
-                        radius: 80,
-                        backgroundImage: user.imageURL != null &&
-                                user.imageURL!.isNotEmpty &&
-                                File(user.imageURL!).existsSync()
-                            ? FileImage(File(user.imageURL!))
-                            : const AssetImage('assets/images/user.png')
-                                as ImageProvider,
-                        backgroundColor: Colors.grey.shade200,
-                        child: user.imageURL == null || user.imageURL!.isEmpty
-                            ? const Icon(
-                                Icons.person,
-                                size: 80,
-                                color: Colors.grey,
-                              )
-                            : null,
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: _showEditDialog,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
+                      Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.green,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.green.withOpacity(0.3),
+                                  blurRadius: 10,
+                                  spreadRadius: 2,
+                                ),
+                              ],
                             ),
-                            child: const Icon(
-                              Icons.edit,
-                              color: Colors.white,
-                              size: 24,
+                            child: CircleAvatar(
+                              radius: 80,
+                              backgroundImage: user.imageURL != null &&
+                                      user.imageURL!.isNotEmpty &&
+                                      File(user.imageURL!).existsSync()
+                                  ? FileImage(File(user.imageURL!))
+                                  : const AssetImage('assets/images/user.png')
+                                      as ImageProvider,
+                              backgroundColor: Colors.grey.shade200,
+                              child: user.imageURL == null ||
+                                      user.imageURL!.isEmpty
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 80,
+                                      color: Colors.grey,
+                                    )
+                                  : null,
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _showEditDialog,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.green,
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        user.fullName ?? 'Không có tên',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Card(
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              _buildInfoTile(
+                                icon: Icons.key,
+                                title: "Mã số",
+                                value: user.idNumber ?? 'Không có',
+                              ),
+                              _buildInfoTile(
+                                icon: Icons.phone,
+                                title: "Số điện thoại",
+                                value: user.phoneNumber ?? 'Không có',
+                              ),
+                              _buildInfoTile(
+                                icon: Icons.transgender,
+                                title: "Giới tính",
+                                value: user.gender ?? 'Không có',
+                              ),
+                              _buildInfoTile(
+                                icon: Icons.cake,
+                                title: "Ngày sinh",
+                                value: user.birthDay ?? 'Không có',
+                              ),
+                              _buildInfoTile(
+                                icon: Icons.school,
+                                title: "Năm học",
+                                value: user.schoolYear ?? 'Không có',
+                              ),
+                              _buildInfoTile(
+                                icon: Icons.vpn_key,
+                                title: "Mã trường",
+                                value: user.schoolKey ?? 'Không có',
+                              ),
+                              _buildInfoTile(
+                                icon: Icons.calendar_today,
+                                title: "Ngày tạo",
+                                value: user.dateCreated ?? 'Không có',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            logOut(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            elevation: 5,
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.red.withOpacity(0.3),
+                          ).copyWith(
+                            backgroundColor: WidgetStateProperty.resolveWith(
+                              (states) => Colors.transparent,
+                            ),
+                            foregroundColor: WidgetStateProperty.resolveWith(
+                              (states) => Colors.white,
+                            ),
+                            overlayColor: WidgetStateProperty.resolveWith(
+                              (states) => Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Colors.red,
+                                  Colors.redAccent,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: const Center(
+                              child: Text(
+                                "Đăng xuất",
+                                style: TextStyle(
+                                    fontSize: 18, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _showDeleteAccountDialog,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            elevation: 5,
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.grey.withOpacity(0.3),
+                          ).copyWith(
+                            backgroundColor: WidgetStateProperty.resolveWith(
+                              (states) => Colors.transparent,
+                            ),
+                            foregroundColor: WidgetStateProperty.resolveWith(
+                              (states) => Colors.white,
+                            ),
+                            overlayColor: WidgetStateProperty.resolveWith(
+                              (states) => Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Colors.grey,
+                                  Colors.grey,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: const Center(
+                              child: Text(
+                                "Xóa tài khoản",
+                                style: TextStyle(
+                                    fontSize: 18, color: Colors.white),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  // Tên người dùng
-                  Text(
-                    user.fullName ?? 'Không có tên',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Thông tin chi tiết
-                  Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          _buildInfoTile(
-                            icon: Icons.key,
-                            title: "Mã số",
-                            value: user.idNumber ?? 'Không có',
-                          ),
-                          _buildInfoTile(
-                            icon: Icons.phone,
-                            title: "Số điện thoại",
-                            value: user.phoneNumber ?? 'Không có',
-                          ),
-                          _buildInfoTile(
-                            icon: Icons.transgender,
-                            title: "Giới tính",
-                            value: user.gender ?? 'Không có',
-                          ),
-                          _buildInfoTile(
-                            icon: Icons.cake,
-                            title: "Ngày sinh",
-                            value: user.birthDay ?? 'Không có',
-                          ),
-                          _buildInfoTile(
-                            icon: Icons.school,
-                            title: "Năm học",
-                            value: user.schoolYear ?? 'Không có',
-                          ),
-                          _buildInfoTile(
-                            icon: Icons.vpn_key,
-                            title: "Mã trường",
-                            value: user.schoolKey ?? 'Không có',
-                          ),
-                          _buildInfoTile(
-                            icon: Icons.calendar_today,
-                            title: "Ngày tạo",
-                            value: user.dateCreated ?? 'Không có',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Nút đăng xuất
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        logOut(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        "Đăng xuất",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
+        ],
+      ),
     );
   }
 
-  // Widget để hiển thị một mục thông tin
   Widget _buildInfoTile({
     required IconData icon,
     required String title,
@@ -624,7 +841,6 @@ class _DetailState extends State<Detail> {
     );
   }
 
-  // Widget để tạo TextField trong dialog chỉnh sửa
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,

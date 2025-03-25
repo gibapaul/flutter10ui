@@ -13,6 +13,8 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:app_json/app/page/product/productcart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:app_json/app/model/product_viewmodel.dart';
 
 class Mainpage extends StatefulWidget {
   const Mainpage({super.key});
@@ -47,12 +49,21 @@ class _MainpageState extends State<Mainpage> {
   void initState() {
     super.initState();
     getDataUser();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final int? initialIndex =
+          ModalRoute.of(context)?.settings.arguments as int?;
+      if (initialIndex != null) {
+        setState(() {
+          _selectedIndex = initialIndex;
+        });
+      }
+    });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Làm mới dữ liệu người dùng mỗi khi màn hình được hiển thị lại
     getDataUser();
   }
 
@@ -60,7 +71,6 @@ class _MainpageState extends State<Mainpage> {
     setState(() {
       _selectedIndex = index;
     });
-    // Nếu người dùng chuyển đến tab Detail (index 3), làm mới dữ liệu khi quay lại
     if (index == 3) {
       Future.delayed(Duration.zero, () {
         getDataUser();
@@ -115,12 +125,12 @@ class _MainpageState extends State<Mainpage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white, // Đặt màu nền của AppBar (nếu chưa có)
+        backgroundColor: Colors.white,
         title: Row(
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: Colors.white, // Trùng với màu nền của AppBar
+              backgroundColor: Colors.white,
               child: ClipOval(
                 child: Image.asset(
                   'assets/images/logo.png',
@@ -190,14 +200,13 @@ class _MainpageState extends State<Mainpage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.green[800]!, // Xanh đậm
-                    Colors.green[200]!, // Xanh nhạt
+                    Colors.green[800]!,
+                    Colors.green[200]!,
                   ],
                 ),
               ),
               child: Stack(
                 children: [
-                  // Hiệu ứng bong bóng tròn
                   Positioned(
                     top: 20,
                     left: 30,
@@ -234,15 +243,13 @@ class _MainpageState extends State<Mainpage> {
                       ),
                     ),
                   ),
-                  // Nội dung chính (avatar và tên)
                   Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         CircleAvatar(
                           radius: 40,
-                          backgroundColor: Colors
-                              .transparent, // Trong suốt để hòa với gradient
+                          backgroundColor: Colors.transparent,
                           child: ClipOval(
                             child: Image.asset(
                               'assets/images/logo.png',
