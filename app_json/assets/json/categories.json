@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "Cây cảnh",
+    "description": "Cây cảnh trang trí cho không gian sống",
+    "img": "caycanh_category.png"
+  },
+  {
+    "id": 2,
+    "name": "Cây ăn quả",
+    "description": "Cây ăn quả mang lại giá trị kinh tế và thẩm mỹ",
+    "img": "cayanqua_category.png"
+  },
+  {
+    "id": 3,
+    "name": "Cây phong thủy",
+    "description": "Cây phong thủy mang lại may mắn và tài lộc",
+    "img": "cayphongthuy_category.png"
+  },
+  {
+    "id": 4,
+    "name": "Cây để bàn",
+    "description": "Cây nhỏ gọn phù hợp cho bàn làm việc",
+    "img": "caydeban_category.png"
+  }
+]
