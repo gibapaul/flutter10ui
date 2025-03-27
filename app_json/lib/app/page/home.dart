@@ -23,8 +23,8 @@ class _HomeState extends State<Home> {
   String selectedCategory = "Tất cả";
   bool isLoading = true;
   final TextEditingController _searchController = TextEditingController();
-  RangeValues _priceRange =
-      const RangeValues(10, 50); // Giá trị khoảng giá mặc định
+  late RangeValues _priceRange; // Không khai báo giá trị mặc định ngay
+  double _maxPrice = 0; // Biến lưu giá tối đa
 
   final List<Map<String, dynamic>> promotions = [
     {
@@ -115,6 +115,16 @@ class _HomeState extends State<Home> {
         setState(() {
           products = data.map((json) => Product.fromJson(json)).toList();
           filteredProducts = products;
+
+          // Tính giá tối đa từ danh sách sản phẩm
+          _maxPrice = products.isNotEmpty
+              ? products
+                  .map((p) => p.price.toDouble())
+                  .reduce((a, b) => a > b ? a : b)
+              : 0;
+          _priceRange =
+              RangeValues(0, _maxPrice); // Thiết lập khoảng giá mặc định
+
           isLoading = false;
         });
       }
@@ -135,13 +145,13 @@ class _HomeState extends State<Home> {
     if (mounted) {
       setState(() {
         if (query.isEmpty) {
-          filteredProducts = products;
+          filteredProducts = List.from(products);
         } else {
           filteredProducts = products
               .where((product) => product.name.toLowerCase().contains(query))
               .toList();
         }
-        _applyFilters(); // Áp dụng bộ lọc sau khi tìm kiếm
+        _applyFilters();
       });
     }
   }
@@ -154,7 +164,7 @@ class _HomeState extends State<Home> {
   }
 
   void _applyFilters() {
-    List<Product> tempProducts = products;
+    List<Product> tempProducts = List.from(products);
 
     // Lọc theo tìm kiếm
     String query = _searchController.text.toLowerCase();
@@ -173,9 +183,8 @@ class _HomeState extends State<Home> {
 
     // Lọc theo khoảng giá
     tempProducts = tempProducts.where((product) {
-      double price = product.price.toDouble() * 1000; // Chuyển giá về VNĐ
-      return price >= _priceRange.start * 1000 &&
-          price <= _priceRange.end * 1000;
+      double price = product.price.toDouble();
+      return price >= _priceRange.start && price <= _priceRange.end;
     }).toList();
 
     setState(() {
@@ -185,10 +194,10 @@ class _HomeState extends State<Home> {
 
   void _resetFilters() {
     setState(() {
-      _searchController.clear(); // Xóa nội dung ô tìm kiếm
-      selectedCategory = "Tất cả"; // Đặt lại danh mục
-      _priceRange = const RangeValues(10, 50); // Đặt lại khoảng giá
-      filteredProducts = products; // Hiển thị lại toàn bộ sản phẩm
+      _searchController.clear();
+      selectedCategory = "Tất cả";
+      _priceRange = RangeValues(0, _maxPrice);
+      filteredProducts = List.from(products);
     });
   }
 
@@ -495,7 +504,7 @@ class _HomeState extends State<Home> {
     return GestureDetector(
       onTap: () {
         setModalState(() {
-          selectedCategory = category; // Cập nhật danh mục tạm thời
+          selectedCategory = category;
         });
       },
       child: Padding(
@@ -527,7 +536,7 @@ class _HomeState extends State<Home> {
   }
 
   void _showSortFilterDialog(BuildContext context) {
-    RangeValues tempPriceRange = _priceRange; // Lưu giá trị tạm thời
+    RangeValues tempPriceRange = _priceRange;
 
     showModalBottomSheet(
       context: context,
@@ -587,8 +596,8 @@ class _HomeState extends State<Home> {
                         RangeSlider(
                           values: tempPriceRange,
                           min: 0,
-                          max: 200,
-                          divisions: 20,
+                          max: _maxPrice,
+                          divisions: (_maxPrice / 10).ceil(),
                           labels: RangeLabels(
                             formatPrice(tempPriceRange.start),
                             formatPrice(tempPriceRange.end),
@@ -609,11 +618,11 @@ class _HomeState extends State<Home> {
                               child: ElevatedButton(
                                 onPressed: () {
                                   setModalState(() {
-                                    tempPriceRange = const RangeValues(10, 50);
+                                    tempPriceRange = RangeValues(0, _maxPrice);
                                     selectedCategory = "Tất cả";
                                   });
-                                  _resetFilters(); // Gọi hàm đặt lại toàn bộ bộ lọc
-                                  Navigator.pop(context); // Đóng dialog
+                                  _resetFilters();
+                                  Navigator.pop(context);
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.grey.shade200,
@@ -743,9 +752,9 @@ class _HomeState extends State<Home> {
                     onTap: () {
                       filterProductsByCategory("Tất cả");
                     },
-                    child: Text(
+                    child: const Text(
                       'Tất cả',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         color: Colors.green,
                         fontWeight: FontWeight.bold,
