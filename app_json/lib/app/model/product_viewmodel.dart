@@ -124,15 +124,13 @@ class ProductsVM extends ChangeNotifier {
   List<Order> orders = [];
 
   ProductsVM() {
-    _loadData(); // Tải dữ liệu khi khởi tạo
+    _loadData();
   }
 
-  // Tải dữ liệu từ SharedPreferences
   Future<void> _loadData() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
 
-      // Tải giỏ hàng
       String? cartJson = prefs.getString('cart');
       if (cartJson != null && cartJson.isNotEmpty) {
         List<dynamic> cartList = jsonDecode(cartJson);
@@ -141,7 +139,6 @@ class ProductsVM extends ChangeNotifier {
         lst = [];
       }
 
-      // Tải danh sách yêu thích
       String? favoritesJson = prefs.getString('favorites');
       if (favoritesJson != null && favoritesJson.isNotEmpty) {
         List<dynamic> favoritesList = jsonDecode(favoritesJson);
@@ -151,7 +148,6 @@ class ProductsVM extends ChangeNotifier {
         favoriteProducts = [];
       }
 
-      // Tải lịch sử đơn hàng
       String? ordersJson = prefs.getString('orders');
       if (ordersJson != null && ordersJson.isNotEmpty) {
         List<dynamic> ordersList = jsonDecode(ordersJson);
@@ -170,21 +166,17 @@ class ProductsVM extends ChangeNotifier {
     }
   }
 
-  // Lưu dữ liệu vào SharedPreferences
   Future<void> _saveData() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
 
-      // Lưu giỏ hàng
       String cartJson = jsonEncode(lst.map((item) => item.toJson()).toList());
       await prefs.setString('cart', cartJson);
 
-      // Lưu danh sách yêu thích
       String favoritesJson = jsonEncode(
           favoriteProducts.map((product) => product.toJson()).toList());
       await prefs.setString('favorites', favoritesJson);
 
-      // Lưu lịch sử đơn hàng
       String ordersJson =
           jsonEncode(orders.map((order) => order.toJson()).toList());
       await prefs.setString('orders', ordersJson);
@@ -195,13 +187,11 @@ class ProductsVM extends ChangeNotifier {
     }
   }
 
-  // Thêm đơn hàng mới
   void addOrder(Order order) {
     orders.insert(0, order);
     _saveData();
   }
 
-  // Thêm sản phẩm vào giỏ hàng
   void addToCart(Product product, {int quantity = 1}) {
     int index = lst.indexWhere((item) => item.product.id == product.id);
     if (index != -1) {
@@ -213,21 +203,18 @@ class ProductsVM extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Xóa sản phẩm khỏi giỏ hàng
   void removeProduct(int index) {
     lst.removeAt(index);
     _saveData();
     notifyListeners();
   }
 
-  // Tăng số lượng
   void increaseQuantity(int index) {
     lst[index].quantity += 1;
     _saveData();
     notifyListeners();
   }
 
-  // Giảm số lượng
   void decreaseQuantity(int index) {
     if (lst[index].quantity > 1) {
       lst[index].quantity -= 1;
@@ -236,19 +223,16 @@ class ProductsVM extends ChangeNotifier {
     }
   }
 
-  // Xóa toàn bộ giỏ hàng
   void clearCart() {
     lst.clear();
     _saveData();
     notifyListeners();
   }
 
-  // Tính tổng số lượng sản phẩm
   int getTotalQuantity() {
     return lst.fold(0, (sum, item) => sum + item.quantity);
   }
 
-  // Tính tổng tiền
   double getTotalPrice() {
     return lst.fold(
         0,
@@ -256,7 +240,6 @@ class ProductsVM extends ChangeNotifier {
             sum + (item.product.price.toDouble() * 1000 * item.quantity));
   }
 
-  // Thêm/sửa sản phẩm trong danh sách yêu thích
   void toggleFavorite(Product product) {
     if (favoriteProducts.contains(product)) {
       favoriteProducts.remove(product);
@@ -267,12 +250,10 @@ class ProductsVM extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Kiểm tra sản phẩm có trong danh sách yêu thích không
   bool isFavorite(Product product) {
     return favoriteProducts.contains(product);
   }
 
-  // Đặt lại toàn bộ trạng thái (dùng khi xóa tài khoản)
   void resetState() {
     lst.clear();
     favoriteProducts.clear();

@@ -143,7 +143,7 @@ class _MainpageState extends State<Mainpage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Xin chào người đẹp',
+                  'Xin chào',
                   style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 Text(
@@ -338,7 +338,11 @@ class _MainpageState extends State<Mainpage> {
         onTap: _onItemTapped,
         letIndexChange: (index) => true,
       ),
-      body: _loadWidget(_selectedIndex),
+      body: Consumer<ProductsVM>(
+        builder: (context, provider, child) {
+          return _loadWidget(_selectedIndex);
+        },
+      ),
     );
   }
 }

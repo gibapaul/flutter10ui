@@ -16,7 +16,6 @@ class _ProductCartState extends State<ProductCart> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Bỏ phần appBar
       body: Column(
         children: [
           Expanded(
@@ -230,7 +229,6 @@ class _ProductCartState extends State<ProductCart> {
                     );
                     return;
                   }
-                  // Chuyển đến trang thanh toán
                   Navigator.push(
                     context,
                     MaterialPageRoute(

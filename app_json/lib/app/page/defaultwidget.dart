@@ -8,7 +8,6 @@ class DefaultWidget extends StatelessWidget {
 
   const DefaultWidget({super.key, required this.title});
 
-  // Hàm định dạng giá tiền
   String formatPrice(double price) {
     String formattedPrice = price.toStringAsFixed(0).replaceAllMapped(
         RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
@@ -18,7 +17,6 @@ class DefaultWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Bỏ AppBar
       body: Consumer<ProductsVM>(
         builder: (context, provider, child) {
           if (provider.orders.isEmpty) {
@@ -84,14 +82,18 @@ class DefaultWidget extends StatelessWidget {
                         itemCount: order.items.length,
                         itemBuilder: (context, itemIndex) {
                           final item = order.items[itemIndex];
+                          print(
+                              'Image path: assets/images/${item.product.img}');
                           return ListTile(
                             leading: Image.asset(
                               'assets/images/${item.product.img}',
                               width: 50,
                               height: 50,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.broken_image, size: 50),
+                              errorBuilder: (context, error, stackTrace) {
+                                print('Error loading image: $error');
+                                return const Icon(Icons.broken_image, size: 50);
+                              },
                             ),
                             title: Text(
                               item.product.name,
